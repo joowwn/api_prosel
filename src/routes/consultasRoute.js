@@ -29,6 +29,7 @@ class ConsultasRoute {
     this.router.put('/transport-requests/:id', (req, res) => TransportController.updateTransportRequest(req, res));
     this.router.delete('/transport-requests/:id', (req, res) => TransportController.deleteTransportRequest(req, res));
     this.router.put('/transport-requests/:id/status', (req, res) => TransportController.updateTransportStatus(req, res));
+    this.router.put('/transport-requests/:id/reject', TransportController.rejectTransportRequest);
 
     // Rota de Priorização de Transporte
     this.router.put('/transport-requests/:id/priority', (req, res) => TransportController.updateTransportRequestPriority(req, res));

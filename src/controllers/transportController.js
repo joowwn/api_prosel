@@ -3,7 +3,7 @@ const HistoricoModel = require('../models/historicModel');
 const IncidentModel = require('../models/IncidentModel');
 
 class TransportController {
-  constructor() {}
+  constructor() { }
 
   getAllTransportRequests(req, res) {
     TransportModel.getAllTransportRequests((err, requests) => {
@@ -126,13 +126,13 @@ class TransportController {
 
   updateTransportRequestStatus(req, res) {
     const { id } = req.params;
-    const { request_status } = req.body;
+    const { request_status, maqueiro_id } = req.body;
 
-    TransportModel.updateTransportRequestStatus(id, request_status, (err) => {
+    TransportModel.updateTransportRequestStatus(id, request_status, maqueiro_id, (err) => {
       if (err) {
         return res.status(500).json({ message: 'Erro interno do servidor' });
       }
-      
+
       let description = 'Solicitação de transporte atualizada';
       if (request_status === 'Aceito') {
         description = 'Solicitação de transporte aceita';
@@ -171,6 +171,27 @@ class TransportController {
       });
 
       return res.status(200).json({ message: 'Status de transporte atualizado com sucesso' });
+    });
+  }
+
+  rejectTransportRequest(req, res) {
+    const { id } = req.params;
+    const { maqueiro_id } = req.body;
+
+    TransportModel.addRejectedMaqueiro(id, maqueiro_id, (err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Erro interno do servidor' });
+      }
+
+      const description = 'Solicitação de transporte recusada';
+
+      HistoricoModel.registrarHistorico(id, description, (err) => {
+        if (err) {
+          console.log("Erro ao registrar no histórico: ", err);
+        }
+      });
+
+      return res.status(200).json({ message: 'Solicitação de transporte recusada com sucesso' });
     });
   }
 }

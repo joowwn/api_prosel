@@ -1,13 +1,13 @@
 const { db } = require('./db');
 
 class TransportModel {
-  constructor() {}
+  constructor() { }
 
   getAllTransportRequests(callback) {
     const query = `
       SELECT TransportRequests.*, Users.name as maqueiro_name
       FROM TransportRequests
-      JOIN Users ON TransportRequests.maqueiro_id = Users.id
+      LEFT JOIN Users ON TransportRequests.maqueiro_id = Users.id
     `;
     db.query(query, (err, results) => {
       if (err) {
@@ -22,7 +22,7 @@ class TransportModel {
     const query = `
       SELECT TransportRequests.*, Users.name as maqueiro_name
       FROM TransportRequests
-      JOIN Users ON TransportRequests.maqueiro_id = Users.id
+      LEFT JOIN Users ON TransportRequests.maqueiro_id = Users.id
       WHERE TransportRequests.id = ?
     `;
     db.query(query, [id], (err, results) => {
@@ -38,10 +38,11 @@ class TransportModel {
     const query = `
       SELECT TransportRequests.*, Users.name as maqueiro_name
       FROM TransportRequests
-      JOIN Users ON TransportRequests.maqueiro_id = Users.id
-      WHERE TransportRequests.maqueiro_id = ?
+      LEFT JOIN Users ON TransportRequests.maqueiro_id = Users.id
+      WHERE (TransportRequests.maqueiro_id = ? OR TransportRequests.maqueiro_id IS NULL)
+      AND (TransportRequests.rejected_by IS NULL OR NOT FIND_IN_SET(?, TransportRequests.rejected_by))
     `;
-    db.query(query, [maqueiro_id], (err, results) => {
+    db.query(query, [maqueiro_id, maqueiro_id], (err, results) => {
       if (err) {
         console.error('Erro ao consultar solicitações de transporte por ID do maqueiro:', err);
         return callback(err, null);
@@ -66,24 +67,24 @@ class TransportModel {
   }
 
   updateTransportRequest(id, data, callback) {
-    const fields = ['patient_name', 'status', 'priority', 'data', 'initial_point', 'destination_point', 'maqueiro_id'];
+    const fields = ['patient_name', 'status', 'priority', 'data', 'initial_point', 'destination_point', 'maqueiro_id', 'request_status', 'rejected_by'];
     let updates = [];
     let params = [];
-
+  
     fields.forEach(field => {
       if (data.hasOwnProperty(field) && data[field] !== undefined) {
         updates.push(`${field} = ?`);
         params.push(data[field]);
       }
     });
-
+  
     if (updates.length === 0) {
-      return callback(new Error("Sem campos validos para atualizar"), null);
+      return callback(new Error("Sem campos válidos para atualizar"), null);
     }
     params.push(id);
-
+  
     const query = `UPDATE TransportRequests SET ${updates.join(', ')} WHERE id = ?`;
-
+  
     db.query(query, params, (err) => {
       if (err) {
         console.error('Erro ao atualizar solicitação de transporte:', err);
@@ -115,9 +116,9 @@ class TransportModel {
     });
   }
 
-  updateTransportRequestStatus(id, request_status, callback) {
-    const query = 'UPDATE TransportRequests SET request_status = ? WHERE id = ?';
-    db.query(query, [request_status, id], (err) => {
+  updateTransportRequestStatus(id, request_status, maqueiro_id, callback) {
+    const query = 'UPDATE TransportRequests SET request_status = ?, maqueiro_id = ? WHERE id = ?';
+    db.query(query, [request_status, maqueiro_id, id], (err) => {
       if (err) {
         console.error('Erro ao atualizar o status da solicitação de transporte:', err);
         return callback(err);
@@ -131,6 +132,17 @@ class TransportModel {
     db.query(query, [status, id], (err) => {
       if (err) {
         console.error('Erro ao atualizar o status de transporte:', err);
+        return callback(err);
+      }
+      return callback(null);
+    });
+  }
+
+  addRejectedMaqueiro(id, maqueiro_id, callback) {
+    const query = 'UPDATE TransportRequests SET rejected_by = IF(rejected_by IS NULL, ?, CONCAT(rejected_by, ",", ?)) WHERE id = ?';
+    db.query(query, [maqueiro_id, maqueiro_id, id], (err) => {
+      if (err) {
+        console.error('Erro ao adicionar maqueiro à lista de rejeitados:', err);
         return callback(err);
       }
       return callback(null);
