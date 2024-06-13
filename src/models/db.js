@@ -3,9 +3,9 @@ const mysql = require('mysql2');
 const db = mysql.createConnection({
   host: 'viaduct.proxy.rlwy.net',
   user: 'root',
-  password: 'cgcubSjmkAWijNarnynUvihGboywlqyT',
+  password: 'wSioyeIXLVpOzcrkqiPbrsADpdFvLmLS',
   database: 'railway',
-  port: 58213,
+  port: 43603,
 });
 
 db.connect((err) => {
